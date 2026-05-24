@@ -18,6 +18,15 @@ async function startServer() {
     next();
   });
 
+  // Helper for Chess.com API calls with a clean, policy-compliant User-Agent header
+  async function fetchWithUserAgent(url: string) {
+    return fetch(url, {
+      headers: {
+        "User-Agent": "chessNchass/1.0 (contact: pro679715@gmail.com; user: noman1119)"
+      }
+    });
+  }
+
   app.use(express.json());
 
   // Chess.com Proxy Routes
@@ -25,7 +34,7 @@ async function startServer() {
   // 1. Fetch user profile
   app.get("/api/chess/profile/:username", async (req, res) => {
     try {
-      const response = await fetch(`https://api.chess.com/pub/player/${req.params.username}`);
+      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}`);
       if (!response.ok) throw new Error("Profile not found");
       const data = await response.json();
       res.json(data);
@@ -37,7 +46,7 @@ async function startServer() {
   // 2. Fetch user stats
   app.get("/api/chess/stats/:username", async (req, res) => {
     try {
-      const response = await fetch(`https://api.chess.com/pub/player/${req.params.username}/stats`);
+      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/stats`);
       if (!response.ok) throw new Error("Stats not found");
       const data = await response.json();
       res.json(data);
@@ -49,7 +58,7 @@ async function startServer() {
   // 3. Fetch active games
   app.get("/api/chess/games/:username", async (req, res) => {
     try {
-      const response = await fetch(`https://api.chess.com/pub/player/${req.params.username}/games`);
+      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/games`);
       if (!response.ok) throw new Error("Games not found");
       const data = await response.json();
       res.json(data);
@@ -61,7 +70,7 @@ async function startServer() {
   // 4. Fetch clubs
   app.get("/api/chess/clubs/:username", async (req, res) => {
     try {
-      const response = await fetch(`https://api.chess.com/pub/player/${req.params.username}/clubs`);
+      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/clubs`);
       if (!response.ok) throw new Error("Clubs not found");
       const data = await response.json();
       res.json(data);
@@ -73,7 +82,7 @@ async function startServer() {
   // 5. Fetch tournaments
   app.get("/api/chess/tournaments/:username", async (req, res) => {
     try {
-      const response = await fetch(`https://api.chess.com/pub/player/${req.params.username}/tournaments`);
+      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/tournaments`);
       if (!response.ok) throw new Error("Tournaments not found");
       const data = await response.json();
       res.json(data);
@@ -86,7 +95,7 @@ async function startServer() {
   app.get("/api/chess/history/:username", async (req, res) => {
     try {
       const offset = parseInt(req.query.offset as string) || 0;
-      const archivesRes = await fetch(`https://api.chess.com/pub/player/${req.params.username}/games/archives`);
+      const archivesRes = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/games/archives`);
       if (!archivesRes.ok) throw new Error("Archives not found");
       const archivesData = await archivesRes.json();
       
@@ -100,7 +109,7 @@ async function startServer() {
       }
 
       const archiveUrl = archivesData.archives[targetIndex];
-      const gamesRes = await fetch(archiveUrl);
+      const gamesRes = await fetchWithUserAgent(archiveUrl);
       if (!gamesRes.ok) throw new Error("Games not found");
       const gamesData = await gamesRes.json();
       

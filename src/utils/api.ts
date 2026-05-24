@@ -21,93 +21,94 @@ export function getApiUrl(path: string): string {
 }
 
 /**
- * Highly robust fetches.
- * We prioritize direct fetching from Chess.com's public CORS-enabled API from the client browser.
- * This completely avoids server routing overhead, avoids CORS preflight failures, minimizes latency,
- * and guarantees 100% success when deployed to Vercel/Netlify/mobile WebView.
+ * Executes a resilient, 3-stage redundant request:
+ * Stage 1: Call our custom secure server-side Proxy (featuring correct User-Agent headers).
+ * Stage 2: Fall back to direct Client-side fetch via Corsproxy.io.
+ * Stage 3: Fall back to direct Client-side fetch via AllOrigins.
  */
+async function resilientFetch(relativePath: string, directChessComUrl: string): Promise<any> {
+  // --- Stage 1: Server Proxy ---
+  try {
+    const proxyUrl = getApiUrl(relativePath);
+    const res = await fetch(proxyUrl);
+    if (res.ok) {
+      return await res.json();
+    }
+    console.warn(`Stage 1 Server Proxy failed for ${relativePath}. Status: ${res.status}. Falling back to Stage 2.`);
+  } catch (err) {
+    console.warn(`Stage 1 Server Proxy threw network error for ${relativePath}. Falling back to Stage 2.`, err);
+  }
+
+  // --- Stage 2: Corsproxy.io ---
+  try {
+    const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(directChessComUrl)}`;
+    const res = await fetch(corsProxyUrl);
+    if (res.ok) {
+      return await res.json();
+    }
+    console.warn(`Stage 2 Corsproxy.io failed for ${directChessComUrl}. Status: ${res.status}. Falling back to Stage 3.`);
+  } catch (err) {
+    console.warn(`Stage 2 Corsproxy.io threw network error for ${directChessComUrl}. Falling back to Stage 3.`, err);
+  }
+
+  // --- Stage 3: AllOrigins ---
+  try {
+    const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directChessComUrl)}`;
+    const res = await fetch(allOriginsUrl);
+    if (res.ok) {
+      return await res.json();
+    }
+    throw new Error(`Stage 3 AllOrigins failed with status: ${res.status}`);
+  } catch (err) {
+    console.error(`Stage 3 AllOrigins failed as well for ${directChessComUrl}. All pipelines exhausted.`, err);
+    throw new Error(`Data acquisition failed for: ${directChessComUrl}. Please ensure the username/endpoint exists.`);
+  }
+}
 
 export async function fetchChessProfile(username: string): Promise<any> {
-  const url = `https://api.chess.com/pub/player/${username}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Profile not found directly from Chess.com");
-    return await res.json();
-  } catch (err) {
-    console.warn(`Direct fetch failed for profile: ${username}. Falling back to server.`, err);
-    const backupUrl = getApiUrl(`/api/chess/profile/${username}`);
-    const backupRes = await fetch(backupUrl);
-    if (!backupRes.ok) throw new Error("Profile not found in both direct and backup endpoints.");
-    return await backupRes.json();
-  }
+  const directUrl = `https://api.chess.com/pub/player/${username}`;
+  const path = `/api/chess/profile/${username}`;
+  return resilientFetch(path, directUrl);
 }
 
 export async function fetchChessStats(username: string): Promise<any> {
-  const url = `https://api.chess.com/pub/player/${username}/stats`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Stats not found directly from Chess.com");
-    return await res.json();
-  } catch (err) {
-    console.warn(`Direct fetch failed for stats: ${username}. Falling back to server.`, err);
-    const backupUrl = getApiUrl(`/api/chess/stats/${username}`);
-    const backupRes = await fetch(backupUrl);
-    if (!backupRes.ok) throw new Error("Stats not found in both direct and backup endpoints.");
-    return await backupRes.json();
-  }
+  const directUrl = `https://api.chess.com/pub/player/${username}/stats`;
+  const path = `/api/chess/stats/${username}`;
+  return resilientFetch(path, directUrl);
 }
 
 export async function fetchChessGames(username: string): Promise<any> {
-  const url = `https://api.chess.com/pub/player/${username}/games`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Games not found directly from Chess.com");
-    return await res.json();
-  } catch (err) {
-    console.warn(`Direct fetch failed for active games: ${username}. Falling back to server.`, err);
-    const backupUrl = getApiUrl(`/api/chess/games/${username}`);
-    const backupRes = await fetch(backupUrl);
-    if (!backupRes.ok) throw new Error("Games not found in both direct and backup endpoints.");
-    return await backupRes.json();
-  }
+  const directUrl = `https://api.chess.com/pub/player/${username}/games`;
+  const path = `/api/chess/games/${username}`;
+  return resilientFetch(path, directUrl);
 }
 
 export async function fetchChessClubs(username: string): Promise<any> {
-  const url = `https://api.chess.com/pub/player/${username}/clubs`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Clubs not found directly from Chess.com");
-    return await res.json();
-  } catch (err) {
-    console.warn(`Direct fetch failed for clubs: ${username}. Falling back to server.`, err);
-    const backupUrl = getApiUrl(`/api/chess/clubs/${username}`);
-    const backupRes = await fetch(backupUrl);
-    if (!backupRes.ok) throw new Error("Clubs not found in both direct and backup endpoints.");
-    return await backupRes.json();
-  }
+  const directUrl = `https://api.chess.com/pub/player/${username}/clubs`;
+  const path = `/api/chess/clubs/${username}`;
+  return resilientFetch(path, directUrl).catch(() => ({ clubs: [] }));
 }
 
 export async function fetchChessTournaments(username: string): Promise<any> {
-  const url = `https://api.chess.com/pub/player/${username}/tournaments`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Tournaments not found directly from Chess.com");
-    return await res.json();
-  } catch (err) {
-    console.warn(`Direct fetch failed for tournaments: ${username}. Falling back to server.`, err);
-    const backupUrl = getApiUrl(`/api/chess/tournaments/${username}`);
-    const backupRes = await fetch(backupUrl);
-    if (!backupRes.ok) throw new Error("Tournaments not found in both direct and backup endpoints.");
-    return await backupRes.json();
-  }
+  const directUrl = `https://api.chess.com/pub/player/${username}/tournaments`;
+  const path = `/api/chess/tournaments/${username}`;
+  return resilientFetch(path, directUrl).catch(() => ({ finished: [], in_progress: [], registered: [] }));
 }
 
 export async function fetchChessHistory(username: string, offset: number = 0): Promise<any> {
-  try {
-    const archivesRes = await fetch(`https://api.chess.com/pub/player/${username}/games/archives`);
-    if (!archivesRes.ok) throw new Error("Archives not found directly from Chess.com");
-    const archivesData = await archivesRes.json();
+  const path = `/api/chess/history/${username}?offset=${offset}`;
+  const directUrl = `https://api.chess.com/pub/player/${username}/games/archives`;
 
+  try {
+    // Attempt archive selection through resilient fetching
+    const archivesData = await resilientFetch(path, directUrl);
+
+    // If archivesData has a 'games' array, it means Stage 1 (Server Proxy) succeeded and bypassed archives processing
+    if (archivesData && Array.isArray(archivesData.games)) {
+      return archivesData;
+    }
+
+    // Direct browser fallback from archives array
     if (!archivesData || !archivesData.archives || archivesData.archives.length === 0) {
       return { games: [], hasMore: false };
     }
@@ -118,9 +119,26 @@ export async function fetchChessHistory(username: string, offset: number = 0): P
     }
 
     const archiveUrl = archivesData.archives[targetIndex];
-    const gamesRes = await fetch(archiveUrl);
-    if (!gamesRes.ok) throw new Error("Games archive download failed directly");
-    const gamesData = await gamesRes.json();
+    
+    // Resolve games inside target archive via CORS Proxy Stage 2 / 3 fallback
+    let gamesData;
+    try {
+      const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(archiveUrl)}`;
+      const res = await fetch(corsProxyUrl);
+      if (res.ok) {
+        gamesData = await res.json();
+      } else {
+        throw new Error();
+      }
+    } catch {
+      const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(archiveUrl)}`;
+      const res = await fetch(allOriginsUrl);
+      if (res.ok) {
+        gamesData = await res.json();
+      } else {
+        throw new Error("Failed to load historical games archive");
+      }
+    }
 
     if (gamesData && gamesData.games) {
       const recentGames = [...gamesData.games].reverse();
@@ -129,11 +147,12 @@ export async function fetchChessHistory(username: string, offset: number = 0): P
       return { games: [], hasMore: targetIndex > 0 };
     }
   } catch (err) {
-    console.warn(`Direct fetch failed for historical archives: ${username}. Falling back to server.`, err);
-    const backupUrl = getApiUrl(`/api/chess/history/${username}?offset=${offset}`);
-    const backupRes = await fetch(backupUrl);
-    if (!backupRes.ok) throw new Error("History not found in both direct and backup endpoints.");
-    return await backupRes.json();
+    console.warn(`Resilient fetch failed for historical archives of ${username}. Attempting backup raw endpoint.`, err);
+    try {
+      const backupRes = await fetch(getApiUrl(path));
+      if (backupRes.ok) return await backupRes.json();
+    } catch {}
+    return { games: [], hasMore: false };
   }
 }
 

@@ -2,7 +2,6 @@ const CACHE_NAME = "chess-n-chass-v1";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
-  "/src/main.tsx",
   "/manifest.json",
   "/icon-192.png",
   "/icon-512.png"
