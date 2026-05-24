@@ -7,6 +7,17 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Configure high-performance CORS middleware for outer platforms (Vercel, Mobile, etc.)
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   app.use(express.json());
 
   // Chess.com Proxy Routes
