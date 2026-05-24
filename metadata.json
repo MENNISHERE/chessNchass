@@ -1,0 +1,6 @@
+{
+  "name": "chessNchass",
+  "description": "A full dashboard with a real-time Chess.com integration and an AI coach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
