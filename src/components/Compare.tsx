@@ -16,7 +16,9 @@ import {
   ArrowLeftRight,
   TrendingUp,
   BrainCircuit,
-  MessageSquare
+  MessageSquare,
+  Star,
+  X
 } from "lucide-react";
 import { ProfileData, StatsData } from "../types";
 import { getApiUrl, fetchChessProfile, fetchChessStats } from "../utils/api";
@@ -49,6 +51,7 @@ export default function Compare() {
   // Native PWA Mobile App Support
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  const [showInstallInfo, setShowInstallInfo] = useState(false);
 
   useEffect(() => {
     const handleBeforePrompt = (e: any) => {
@@ -61,12 +64,15 @@ export default function Compare() {
   }, []);
 
   const handleInstallApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setIsInstallable(false);
-      setDeferredPrompt(null);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setIsInstallable(false);
+        setDeferredPrompt(null);
+      }
+    } else {
+      setShowInstallInfo(true);
     }
   };
   
@@ -211,15 +217,14 @@ export default function Compare() {
                 Compare
               </Link>
             </div>
-            {isInstallable && (
-              <button
-                onClick={handleInstallApp}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-[16px] border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 text-amber-300 text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.1)]"
-              >
-                <Trophy className="h-3 w-3 animate-pulse text-amber-400 fill-amber-400" />
-                Install Mobile App
-              </button>
-            )}
+            
+            <button
+              onClick={handleInstallApp}
+              className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-[16px] border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 text-amber-300 text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+            >
+              <Star className="h-3 w-3 animate-pulse text-amber-400 fill-amber-400" />
+              Install Mobile App
+            </button>
           </nav>
 
           {/* Fast Summary Box */}
@@ -511,6 +516,65 @@ export default function Compare() {
         </main>
 
       </div>
+
+      {showInstallInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-[24px] border border-white/10 bg-[#070913]/95 p-6 shadow-2xl relative select-none">
+            <button 
+              onClick={() => setShowInstallInfo(false)}
+              className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Star className="h-5 w-5 fill-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-display font-medium text-white text-base">Progressive Web App Guide</h3>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-neutral-400">Install Mobile &amp; Desktop App</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-sm text-neutral-300">
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                This chess dashboard is a full Progressive Web App (PWA) and can be saved directly as an app to your device's home screen.
+              </p>
+              
+              <div className="divide-y divide-white/5 space-y-3">
+                <div className="pt-2">
+                  <span className="font-semibold text-[11px] font-mono uppercase text-amber-400">1. Inside AI Studio Preview?</span>
+                  <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
+                    Since the app is currently loaded inside a sandboxed editor iframe, browsers block instant installation. Please click the <span className="text-white font-medium">"Open in new tab"</span> arrow icon on the top right-hand side of this preview window first, then install from there!
+                  </p>
+                </div>
+
+                <div className="pt-3">
+                  <span className="font-semibold text-[11px] font-mono uppercase text-amber-400">2. Chrome / Edge / Brave (Desktop &amp; Android)</span>
+                  <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
+                    Once in a separate tab, click the <span className="text-white font-medium">Install Icon / Monitor</span> inside the right of the URL bar at the top, or select <span className="text-white font-medium">"Install chessNchass..."</span> from your browser's three-dot menu list.
+                  </p>
+                </div>
+
+                <div className="pt-3">
+                  <span className="font-semibold text-[11px] font-mono uppercase text-amber-400">3. Safari (iOS iPad / iPhone)</span>
+                  <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
+                    Once in a separate tab, tap the browser's bottom <span className="text-white font-medium">"Share"</span> button, scroll down, and select <span className="text-white font-medium">"Add to Home Screen"</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setShowInstallInfo(false)}
+              className="mt-6 w-full py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-semibold tracking-wide transition-all active:scale-[0.98] cursor-pointer"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
