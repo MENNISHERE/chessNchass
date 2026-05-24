@@ -66,38 +66,44 @@ async function resilientFetch(relativePath: string, directChessComUrl: string): 
 }
 
 export async function fetchChessProfile(username: string): Promise<any> {
-  const directUrl = `https://api.chess.com/pub/player/${username}`;
-  const path = `/api/chess/profile/${username}`;
+  const safeUser = username.toLowerCase().trim();
+  const directUrl = `https://api.chess.com/pub/player/${safeUser}`;
+  const path = `/api/chess/profile/${safeUser}`;
   return resilientFetch(path, directUrl);
 }
 
 export async function fetchChessStats(username: string): Promise<any> {
-  const directUrl = `https://api.chess.com/pub/player/${username}/stats`;
-  const path = `/api/chess/stats/${username}`;
+  const safeUser = username.toLowerCase().trim();
+  const directUrl = `https://api.chess.com/pub/player/${safeUser}/stats`;
+  const path = `/api/chess/stats/${safeUser}`;
   return resilientFetch(path, directUrl);
 }
 
 export async function fetchChessGames(username: string): Promise<any> {
-  const directUrl = `https://api.chess.com/pub/player/${username}/games`;
-  const path = `/api/chess/games/${username}`;
+  const safeUser = username.toLowerCase().trim();
+  const directUrl = `https://api.chess.com/pub/player/${safeUser}/games`;
+  const path = `/api/chess/games/${safeUser}`;
   return resilientFetch(path, directUrl);
 }
 
 export async function fetchChessClubs(username: string): Promise<any> {
-  const directUrl = `https://api.chess.com/pub/player/${username}/clubs`;
-  const path = `/api/chess/clubs/${username}`;
+  const safeUser = username.toLowerCase().trim();
+  const directUrl = `https://api.chess.com/pub/player/${safeUser}/clubs`;
+  const path = `/api/chess/clubs/${safeUser}`;
   return resilientFetch(path, directUrl).catch(() => ({ clubs: [] }));
 }
 
 export async function fetchChessTournaments(username: string): Promise<any> {
-  const directUrl = `https://api.chess.com/pub/player/${username}/tournaments`;
-  const path = `/api/chess/tournaments/${username}`;
+  const safeUser = username.toLowerCase().trim();
+  const directUrl = `https://api.chess.com/pub/player/${safeUser}/tournaments`;
+  const path = `/api/chess/tournaments/${safeUser}`;
   return resilientFetch(path, directUrl).catch(() => ({ finished: [], in_progress: [], registered: [] }));
 }
 
 export async function fetchChessHistory(username: string, offset: number = 0): Promise<any> {
-  const path = `/api/chess/history/${username}?offset=${offset}`;
-  const directUrl = `https://api.chess.com/pub/player/${username}/games/archives`;
+  const safeUser = username.toLowerCase().trim();
+  const path = `/api/chess/history/${safeUser}?offset=${offset}`;
+  const directUrl = `https://api.chess.com/pub/player/${safeUser}/games/archives`;
 
   try {
     // Attempt archive selection through resilient fetching

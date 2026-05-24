@@ -33,70 +33,111 @@ async function startServer() {
   
   // 1. Fetch user profile
   app.get("/api/chess/profile/:username", async (req, res) => {
+    const rawUsername = req.params.username;
+    const username = rawUsername.toLowerCase().trim();
     try {
-      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}`);
-      if (!response.ok) throw new Error("Profile not found");
+      const url = `https://api.chess.com/pub/player/${username}`;
+      const response = await fetchWithUserAgent(url);
+      if (!response.ok) {
+        console.error(`GCP Cloud Run Server Chess.com Profile API error for ${username}: Profile not found. Status code: ${response.status}`);
+        throw new Error("Profile not found");
+      }
       const data = await response.json();
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`GCP Cloud Run Server Chess.com Profile fetch exception for ${username}: ${error.message}`);
       res.status(404).json({ error: "Profile not found" });
     }
   });
 
   // 2. Fetch user stats
   app.get("/api/chess/stats/:username", async (req, res) => {
+    const rawUsername = req.params.username;
+    const username = rawUsername.toLowerCase().trim();
     try {
-      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/stats`);
-      if (!response.ok) throw new Error("Stats not found");
+      const url = `https://api.chess.com/pub/player/${username}/stats`;
+      const response = await fetchWithUserAgent(url);
+      if (!response.ok) {
+        console.error(`GCP Cloud Run Server Chess.com Stats API error for ${username}: Stats not found. Status code: ${response.status}`);
+        throw new Error("Stats not found");
+      }
       const data = await response.json();
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`GCP Cloud Run Server Chess.com Stats fetch exception for ${username}: ${error.message}`);
       res.status(404).json({ error: "Stats not found" });
     }
   });
 
   // 3. Fetch active games
   app.get("/api/chess/games/:username", async (req, res) => {
+    const rawUsername = req.params.username;
+    const username = rawUsername.toLowerCase().trim();
     try {
-      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/games`);
-      if (!response.ok) throw new Error("Games not found");
+      const url = `https://api.chess.com/pub/player/${username}/games`;
+      const response = await fetchWithUserAgent(url);
+      if (!response.ok) {
+        console.error(`GCP Cloud Run Server Chess.com Games API error for ${username}: Games not found. Status code: ${response.status}`);
+        throw new Error("Games not found");
+      }
       const data = await response.json();
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`GCP Cloud Run Server Chess.com Games fetch exception for ${username}: ${error.message}`);
       res.status(404).json({ error: "Games not found" });
     }
   });
 
   // 4. Fetch clubs
   app.get("/api/chess/clubs/:username", async (req, res) => {
+    const rawUsername = req.params.username;
+    const username = rawUsername.toLowerCase().trim();
     try {
-      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/clubs`);
-      if (!response.ok) throw new Error("Clubs not found");
+      const url = `https://api.chess.com/pub/player/${username}/clubs`;
+      const response = await fetchWithUserAgent(url);
+      if (!response.ok) {
+        console.error(`GCP Cloud Run Server Chess.com Clubs API error for ${username}: Clubs not found. Status code: ${response.status}`);
+        throw new Error("Clubs not found");
+      }
       const data = await response.json();
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`GCP Cloud Run Server Chess.com Clubs fetch exception for ${username}: ${error.message}`);
       res.status(404).json({ error: "Clubs not found" });
     }
   });
 
   // 5. Fetch tournaments
   app.get("/api/chess/tournaments/:username", async (req, res) => {
+    const rawUsername = req.params.username;
+    const username = rawUsername.toLowerCase().trim();
     try {
-      const response = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/tournaments`);
-      if (!response.ok) throw new Error("Tournaments not found");
+      const url = `https://api.chess.com/pub/player/${username}/tournaments`;
+      const response = await fetchWithUserAgent(url);
+      if (!response.ok) {
+        console.error(`GCP Cloud Run Server Chess.com Tournaments API error for ${username}: Tournaments not found. Status code: ${response.status}`);
+        throw new Error("Tournaments not found");
+      }
       const data = await response.json();
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`GCP Cloud Run Server Chess.com Tournaments fetch exception for ${username}: ${error.message}`);
       res.status(404).json({ error: "Tournaments not found" });
     }
   });
 
   // 6. Fetch game history with offset support
   app.get("/api/chess/history/:username", async (req, res) => {
+    const rawUsername = req.params.username;
+    const username = rawUsername.toLowerCase().trim();
     try {
       const offset = parseInt(req.query.offset as string) || 0;
-      const archivesRes = await fetchWithUserAgent(`https://api.chess.com/pub/player/${req.params.username}/games/archives`);
-      if (!archivesRes.ok) throw new Error("Archives not found");
+      const archivesUrl = `https://api.chess.com/pub/player/${username}/games/archives`;
+      const archivesRes = await fetchWithUserAgent(archivesUrl);
+      if (!archivesRes.ok) {
+        console.error(`GCP Cloud Run Server Chess.com Archives API error for ${username}: Archives not found. Status code: ${archivesRes.status}`);
+        throw new Error("Archives not found");
+      }
       const archivesData = await archivesRes.json();
       
       if (!archivesData || !archivesData.archives || archivesData.archives.length === 0) {
@@ -110,7 +151,10 @@ async function startServer() {
 
       const archiveUrl = archivesData.archives[targetIndex];
       const gamesRes = await fetchWithUserAgent(archiveUrl);
-      if (!gamesRes.ok) throw new Error("Games not found");
+      if (!gamesRes.ok) {
+        console.error(`GCP Cloud Run Server Chess.com Historical Games Archive download failed for ${username} at index ${targetIndex}. Status code: ${gamesRes.status}`);
+        throw new Error("Games not found");
+      }
       const gamesData = await gamesRes.json();
       
       if (gamesData && gamesData.games) {
@@ -119,7 +163,8 @@ async function startServer() {
       } else {
           res.json({ games: [], hasMore: targetIndex > 0 });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`GCP Cloud Run Server Chess.com History fetch exception for ${username}: ${error.message}`);
       res.status(404).json({ error: "History not found" });
     }
   });
