@@ -19,7 +19,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { ProfileData, StatsData } from "../types";
-import { getApiUrl } from "../utils/api";
+import { getApiUrl, fetchChessProfile, fetchChessStats } from "../utils/api";
 
 export default function Compare() {
   const [loading, setLoading] = useState(true);
@@ -65,21 +65,16 @@ export default function Compare() {
     async function fetchAllData() {
       try {
         setLoading(true);
-        const [p1ProfileRes, p1StatsRes, p2ProfileRes, p2StatsRes] = await Promise.all([
-          fetch(getApiUrl("/api/chess/profile/MENN-HERE")),
-          fetch(getApiUrl("/api/chess/stats/MENN-HERE")),
-          fetch(getApiUrl("/api/chess/profile/noman1119")),
-          fetch(getApiUrl("/api/chess/stats/noman1119"))
+        const [p1Profile, p1Stats, p2Profile, p2Stats] = await Promise.all([
+          fetchChessProfile("MENN-HERE"),
+          fetchChessStats("MENN-HERE"),
+          fetchChessProfile("noman1119"),
+          fetchChessStats("noman1119")
         ]);
 
-        if (!p1ProfileRes.ok || !p1StatsRes.ok || !p2ProfileRes.ok || !p2StatsRes.ok) {
+        if (!p1Profile || !p1Stats || !p2Profile || !p2Stats) {
           throw new Error("Unable to fetch Chess.com comparison data.");
         }
-
-        const p1Profile = await p1ProfileRes.json();
-        const p1Stats = await p1StatsRes.json();
-        const p2Profile = await p2ProfileRes.json();
-        const p2Stats = await p2StatsRes.json();
 
         if (isMounted) {
           setPlayer1Profile(p1Profile);

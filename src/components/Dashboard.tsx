@@ -1,7 +1,7 @@
 import {
   Activity,
   Calendar,
-  Crosshairs,
+  Crosshair,
   Flame,
   Globe,
   LineChart,
@@ -16,8 +16,7 @@ import {
   BrainCircuit,
   Award,
   Users,
-  Medal,
-  Activity
+  Medal
 } from "lucide-react";
 import React, { useEffect, useState, useMemo } from "react";
 import { ParsedDashboardData, ProfileData, StatsData, ClubData, TournamentData, GameHistoryData } from "../types";
@@ -25,7 +24,15 @@ import AICoach from "./AICoach";
 import HistoryGraph from "./HistoryGraph";
 import StatCard from "./StatCard";
 import { Link } from "react-router-dom";
-import { getApiUrl } from "../utils/api";
+import { 
+  getApiUrl,
+  fetchChessProfile,
+  fetchChessStats,
+  fetchChessGames,
+  fetchChessClubs,
+  fetchChessTournaments,
+  fetchChessHistory
+} from "../utils/api";
 
 export default function Dashboard({ username }: { username: string }) {
   const displayName = username.toLowerCase() === "noman1119" ? "Noman" : "Menn";
@@ -155,23 +162,16 @@ export default function Dashboard({ username }: { username: string }) {
     async function fetchData(isInitial = false) {
       try {
         if (isInitial) setLoading(true);
-        const [profileRes, statsRes, gamesRes, clubsRes, tournRes, historyRes] = await Promise.all([
-          fetch(getApiUrl(`/api/chess/profile/${username}`)),
-          fetch(getApiUrl(`/api/chess/stats/${username}`)),
-          fetch(getApiUrl(`/api/chess/games/${username}`)),
-          fetch(getApiUrl(`/api/chess/clubs/${username}`)),
-          fetch(getApiUrl(`/api/chess/tournaments/${username}`)),
-          fetch(getApiUrl(`/api/chess/history/${username}?offset=0`))
+        const [profileData, statsData, gamesData, clubsData, tournData, historyData] = await Promise.all([
+          fetchChessProfile(username),
+          fetchChessStats(username),
+          fetchChessGames(username),
+          fetchChessClubs(username).catch(() => ({ clubs: [] })),
+          fetchChessTournaments(username).catch(() => ({ finished: [], in_progress: [], registered: [] })),
+          fetchChessHistory(username, 0).catch(() => ({ games: [], hasMore: false }))
         ]);
 
-        if (!profileRes.ok || !statsRes.ok || !gamesRes.ok) throw new Error("Failed to fetch primary Chess.com data");
-
-        const profileData: ProfileData = await profileRes.json();
-        const statsData: StatsData = await statsRes.json();
-        const gamesData = await gamesRes.json();
-        const clubsData = clubsRes.ok ? await clubsRes.json() : { clubs: [] };
-        const tournData = tournRes.ok ? await tournRes.json() : { finished: [], in_progress: [], registered: [] };
-        const historyData = historyRes.ok ? await historyRes.json() : { games: [] };
+        if (!profileData || !statsData || !gamesData) throw new Error("Failed to fetch primary Chess.com data");
 
         if (!isMounted) return;
 
@@ -704,8 +704,7 @@ export default function Dashboard({ username }: { username: string }) {
                       setLoadingMoreHistory(true);
                       try {
                         const nextOffset = historyOffset + 1;
-                        const res = await fetch(getApiUrl(`/api/chess/history/${username}?offset=${nextOffset}`));
-                        const data = await res.json();
+                        const data = await fetchChessHistory(username, nextOffset);
                         setHistory(prev => [...prev, ...(data.games || [])]);
                         setHistoryOffset(nextOffset);
                         setHasMoreHistory(data.hasMore);
