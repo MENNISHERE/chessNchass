@@ -22,12 +22,22 @@ import { ProfileData, StatsData } from "../types";
 import { getApiUrl, fetchChessProfile, fetchChessStats } from "../utils/api";
 
 export default function Compare() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [player1Profile, setPlayer1Profile] = useState<ProfileData | null>(null);
-  const [player1Stats, setPlayer1Stats] = useState<StatsData | null>(null);
+  const [player1Stats, setPlayer1Stats] = useState<StatsData>({
+    chess_rapid: { last: { rating: 0, date: 0, rd: 0 } },
+    chess_blitz: { last: { rating: 0, date: 0, rd: 0 } },
+    chess_bullet: { last: { rating: 0, date: 0, rd: 0 } },
+    tactics: { highest: { rating: 0, date: 0 }, lowest: { rating: 0, date: 0 } }
+  });
   
   const [player2Profile, setPlayer2Profile] = useState<ProfileData | null>(null);
-  const [player2Stats, setPlayer2Stats] = useState<StatsData | null>(null);
+  const [player2Stats, setPlayer2Stats] = useState<StatsData>({
+    chess_rapid: { last: { rating: 0, date: 0, rd: 0 } },
+    chess_blitz: { last: { rating: 0, date: 0, rd: 0 } },
+    chess_bullet: { last: { rating: 0, date: 0, rd: 0 } },
+    tactics: { highest: { rating: 0, date: 0 }, lowest: { rating: 0, date: 0 } }
+  });
   
   const [error, setError] = useState<string | null>(null);
 
@@ -130,23 +140,7 @@ export default function Compare() {
     setUserInput("");
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-transparent">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative flex h-16 w-16">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-16 w-16 bg-indigo-500/10 border border-indigo-500/30 items-center justify-center text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
-              <Swords className="h-6 w-6 animate-pulse" />
-            </span>
-          </div>
-          <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 animate-pulse">Synchronizing Comparison Matrices...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !player1Stats || !player2Stats) {
+  if (error) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-transparent p-4 text-center text-neutral-400">
         <div className="rounded-[24px] border border-white/5 bg-white/[0.02] backdrop-blur-xl p-8">

@@ -36,7 +36,7 @@ import {
 
 export default function Dashboard({ username }: { username: string }) {
   const displayName = username.toLowerCase() === "noman1119" ? "Noman" : "Menn";
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [clubs, setClubs] = useState<ClubData[]>([]);
@@ -46,7 +46,21 @@ export default function Dashboard({ username }: { username: string }) {
   const [hasMoreHistory, setHasMoreHistory] = useState(true);
   const [visibleHistory, setVisibleHistory] = useState(5);
   const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
-  const [parsedData, setParsedData] = useState<ParsedDashboardData | null>(null);
+  const [parsedData, setParsedData] = useState<ParsedDashboardData>({
+    username: displayName,
+    last_updated: null as any,
+    ratings: {
+      bullet: { current: null, peak: null },
+      blitz: { current: null, peak: null },
+      rapid: { current: null, peak: null },
+    },
+    live_game: {
+      is_active: false,
+      opponent: null,
+      opponent_rating: null,
+      current_fen: null,
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [graphMode, setGraphMode] = useState<"bullet" | "blitz" | "rapid">("rapid");
 
@@ -251,20 +265,7 @@ export default function Dashboard({ username }: { username: string }) {
     };
   }, [username]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-transparent">
-        <div className="flex flex-col items-center gap-5">
-          <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-white/80"></div>
-          <span className="font-mono text-xs uppercase tracking-widest text-neutral-400 font-medium">
-            INITIALIZING
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !parsedData) {
+  if (error) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-transparent p-4 text-center text-neutral-400">
         <div className="rounded-[24px] border border-white/5 bg-white/[0.02] backdrop-blur-xl p-8">
