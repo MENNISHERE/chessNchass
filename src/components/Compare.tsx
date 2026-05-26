@@ -129,11 +129,18 @@ export default function Compare() {
         })
       });
 
-      if (!res.ok) throw new Error("AI Coach compare error");
+      if (!res.ok) {
+        try {
+          const errData = await res.json();
+          throw new Error(errData.error || "AI Coach compare error");
+        } catch(e: any) {
+          throw new Error(e.message === "AI Coach compare error" ? e.message : (e.message || "AI Coach compare error"));
+        }
+      }
       const data = await res.json();
       setAiMessage(data.analysis || "Try asking again!");
-    } catch (err) {
-      setAiMessage("Kuch issue ho gaya, comparison model responded with an error. Dubara try karo!");
+    } catch (err: any) {
+      setAiMessage(err.message === "AI Coach compare error" ? "Kuch issue ho gaya, comparison model responded with an error. Dubara try karo!" : err.message);
     } finally {
       setLoadingCoach(false);
     }

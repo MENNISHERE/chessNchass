@@ -58,7 +58,14 @@ export default function AICoach({ profile, stats }: AICoachProps) {
         body: JSON.stringify({ profile, stats, intent: userMessage }),
       });
 
-      if (!res.ok) throw new Error("Network error");
+      if (!res.ok) {
+        try {
+          const errData = await res.json();
+          throw new Error(errData.error || "Network error");
+        } catch (e: any) {
+          throw new Error(e.message === "Network error" ? e.message : (e.message || "Network error"));
+        }
+      }
       const data = await res.json();
 
       setMessages((prev) => [
@@ -71,7 +78,7 @@ export default function AICoach({ profile, stats }: AICoachProps) {
         {
           id: (Date.now() + 1).toString(),
           role: "ai",
-          content: "Oops, connection drop ho gaya boss. API check karle apna.",
+          content: err.message === "Network error" ? "Oops, connection drop ho gaya boss. API check karle apna." : err.message,
         },
       ]);
     } finally {
