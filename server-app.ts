@@ -14,18 +14,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// Helper for Chess.com API calls with a clean, policy-compliant User-Agent header
-async function fetchWithUserAgent(url: string) {
-  return fetch(url, {
+// In-memory caching layer to prevent Chess.com rate limit blocks (429/403) and Vercel execution timeouts (504)
+const cacheStore = new Map<string, { data: any; expiry: number }>();
+const CACHE_TTL_MS = 120 * 1000; // 2 minutes (120,000ms) caching duration
+
+async function fetchWithUserAgentAndCache(url: string): Promise<any> {
+  const cached = cacheStore.get(url);
+  if (cached && cached.expiry > Date.now()) {
+    console.log(`[Cache Hit] Chess.com endpoint served from memory: ${url}`);
+    return cached.data;
+  }
+
+  console.log(`[Cache Miss] Querying direct Chess.com endpoint: ${url}`);
+  const response = await fetch(url, {
     headers: {
       "User-Agent": "chessNchass/1.0 (contact: pro679715@gmail.com; user: noman1119)"
     }
   });
+
+  if (!response.ok) {
+    throw new Error(`Upstream Chess.com failure: ${response.status} for ${url}`);
+  }
+
+  const data = await response.json();
+  cacheStore.set(url, { data, expiry: Date.now() + CACHE_TTL_MS });
+  return data;
 }
 
 app.use(express.json());
 
-// Chess.com Proxy Routes
+// Chess.com Proxy Routes with automated Caching support
 
 // 1. Fetch user profile
 app.get("/api/chess/profile/:username", async (req, res) => {
@@ -33,15 +51,10 @@ app.get("/api/chess/profile/:username", async (req, res) => {
   const username = rawUsername.toLowerCase().trim();
   try {
     const url = `https://api.chess.com/pub/player/${username}`;
-    const response = await fetchWithUserAgent(url);
-    if (!response.ok) {
-      console.error(`Vercel/Serverless Chess.com Profile API error for ${username}: Profile not found. Status code: ${response.status}`);
-      throw new Error("Profile not found");
-    }
-    const data = await response.json();
+    const data = await fetchWithUserAgentAndCache(url);
     res.json(data);
   } catch (error: any) {
-    console.error(`Vercel/Serverless Chess.com Profile fetch exception for ${username}: ${error.message}`);
+    console.error(`Chess.com Profile fetch error for ${username}: ${error.message}`);
     res.status(404).json({ error: "Profile not found" });
   }
 });
@@ -52,15 +65,10 @@ app.get("/api/chess/stats/:username", async (req, res) => {
   const username = rawUsername.toLowerCase().trim();
   try {
     const url = `https://api.chess.com/pub/player/${username}/stats`;
-    const response = await fetchWithUserAgent(url);
-    if (!response.ok) {
-      console.error(`Vercel/Serverless Chess.com Stats API error for ${username}: Stats not found. Status code: ${response.status}`);
-      throw new Error("Stats not found");
-    }
-    const data = await response.json();
+    const data = await fetchWithUserAgentAndCache(url);
     res.json(data);
   } catch (error: any) {
-    console.error(`Vercel/Serverless Chess.com Stats fetch exception for ${username}: ${error.message}`);
+    console.error(`Chess.com Stats fetch error for ${username}: ${error.message}`);
     res.status(404).json({ error: "Stats not found" });
   }
 });
@@ -71,15 +79,10 @@ app.get("/api/chess/games/:username", async (req, res) => {
   const username = rawUsername.toLowerCase().trim();
   try {
     const url = `https://api.chess.com/pub/player/${username}/games`;
-    const response = await fetchWithUserAgent(url);
-    if (!response.ok) {
-      console.error(`Vercel/Serverless Chess.com Games API error for ${username}: Games not found. Status code: ${response.status}`);
-      throw new Error("Games not found");
-    }
-    const data = await response.json();
+    const data = await fetchWithUserAgentAndCache(url);
     res.json(data);
   } catch (error: any) {
-    console.error(`Vercel/Serverless Chess.com Games fetch exception for ${username}: ${error.message}`);
+    console.error(`Chess.com Games fetch error for ${username}: ${error.message}`);
     res.status(404).json({ error: "Games not found" });
   }
 });
@@ -90,15 +93,10 @@ app.get("/api/chess/clubs/:username", async (req, res) => {
   const username = rawUsername.toLowerCase().trim();
   try {
     const url = `https://api.chess.com/pub/player/${username}/clubs`;
-    const response = await fetchWithUserAgent(url);
-    if (!response.ok) {
-      console.error(`Vercel/Serverless Chess.com Clubs API error for ${username}: Clubs not found. Status code: ${response.status}`);
-      throw new Error("Clubs not found");
-    }
-    const data = await response.json();
+    const data = await fetchWithUserAgentAndCache(url);
     res.json(data);
   } catch (error: any) {
-    console.error(`Vercel/Serverless Chess.com Clubs fetch exception for ${username}: ${error.message}`);
+    console.error(`Chess.com Clubs fetch error for ${username}: ${error.message}`);
     res.status(404).json({ error: "Clubs not found" });
   }
 });
@@ -109,15 +107,10 @@ app.get("/api/chess/tournaments/:username", async (req, res) => {
   const username = rawUsername.toLowerCase().trim();
   try {
     const url = `https://api.chess.com/pub/player/${username}/tournaments`;
-    const response = await fetchWithUserAgent(url);
-    if (!response.ok) {
-      console.error(`Vercel/Serverless Chess.com Tournaments API error for ${username}: Tournaments not found. Status code: ${response.status}`);
-      throw new Error("Tournaments not found");
-    }
-    const data = await response.json();
+    const data = await fetchWithUserAgentAndCache(url);
     res.json(data);
   } catch (error: any) {
-    console.error(`Vercel/Serverless Chess.com Tournaments fetch exception for ${username}: ${error.message}`);
+    console.error(`Chess.com Tournaments fetch error for ${username}: ${error.message}`);
     res.status(404).json({ error: "Tournaments not found" });
   }
 });
@@ -129,12 +122,7 @@ app.get("/api/chess/history/:username", async (req, res) => {
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const archivesUrl = `https://api.chess.com/pub/player/${username}/games/archives`;
-    const archivesRes = await fetchWithUserAgent(archivesUrl);
-    if (!archivesRes.ok) {
-      console.error(`Vercel/Serverless Chess.com Archives API error for ${username}: Archives not found. Status code: ${archivesRes.status}`);
-      throw new Error("Archives not found");
-    }
-    const archivesData = await archivesRes.json();
+    const archivesData = await fetchWithUserAgentAndCache(archivesUrl);
     
     if (!archivesData || !archivesData.archives || archivesData.archives.length === 0) {
        return res.json({ games: [], hasMore: false });
@@ -146,12 +134,7 @@ app.get("/api/chess/history/:username", async (req, res) => {
     }
 
     const archiveUrl = archivesData.archives[targetIndex];
-    const gamesRes = await fetchWithUserAgent(archiveUrl);
-    if (!gamesRes.ok) {
-      console.error(`Vercel/Serverless Chess.com Historical Games Archive download failed for ${username} at index ${targetIndex}. Status code: ${gamesRes.status}`);
-      throw new Error("Games not found");
-    }
-    const gamesData = await gamesRes.json();
+    const gamesData = await fetchWithUserAgentAndCache(archiveUrl);
     
     if (gamesData && gamesData.games) {
         const recentGames = gamesData.games.reverse();
@@ -160,7 +143,7 @@ app.get("/api/chess/history/:username", async (req, res) => {
         res.json({ games: [], hasMore: targetIndex > 0 });
     }
   } catch (error: any) {
-    console.error(`Vercel/Serverless Chess.com History fetch exception for ${username}: ${error.message}`);
+    console.error(`Chess.com History fetch error for ${username}: ${error.message}`);
     res.status(404).json({ error: "History not found" });
   }
 });
