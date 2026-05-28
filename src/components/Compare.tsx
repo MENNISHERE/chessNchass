@@ -153,13 +153,52 @@ export default function Compare() {
     setUserInput("");
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#030407] p-6 text-center">
+        <div className="relative mb-6">
+          <div className="h-16 w-16 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <ArrowLeftRight className="h-6 w-6 text-indigo-400 animate-pulse" />
+          </div>
+        </div>
+        <h3 className="font-display text-base font-medium text-white tracking-wide">Syncing Head-to-Head Stats...</h3>
+        <p className="mt-2 font-mono text-[10px] tracking-widest text-neutral-500 uppercase">Calling Vercel Serverless Function Proxy</p>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-transparent p-4 text-center text-neutral-400">
-        <div className="rounded-[24px] border border-white/5 bg-white/[0.02] backdrop-blur-xl p-8">
-          <Skull className="mx-auto mb-4 h-10 w-10 text-rose-500/80" />
-          <h2 className="text-xl font-display font-medium tracking-tight text-white mb-2">Comparison Blocked</h2>
-          <p className="mt-2 font-sans text-sm text-neutral-500">{error || "Data load failed."}</p>
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#030407] p-6 text-center">
+        <div className="max-w-md w-full rounded-[24px] border border-rose-500/15 bg-rose-500/[0.02] backdrop-blur-2xl p-8 relative overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.05)]">
+          <div className="absolute top-0 right-0 h-32 w-32 bg-rose-500/5 blur-[50px] rounded-full pointer-events-none"></div>
+          
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+            <Skull className="h-6 w-6 animate-pulse" />
+          </div>
+          
+          <h2 className="text-xl font-display font-medium tracking-tight text-white mb-2">Comparison Aborted!</h2>
+          
+          <p className="font-sans text-xs text-neutral-400 leading-relaxed mb-6">
+            Bhai! Head-to-head comparison stats load nahi ho paa rahe hain. Vercel connection rate-limited or offline.
+          </p>
+
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-3 rounded-xl border border-indigo-500/30 bg-indigo-500/25 hover:bg-indigo-500/40 text-indigo-200 font-sans text-xs font-semibold tracking-wide transition-all active:scale-[0.98] cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+            >
+              Retry Sync
+            </button>
+            
+            <Link
+              to="/"
+              className="w-full py-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-neutral-300 font-sans text-xs font-medium tracking-wide transition-all text-center block"
+            >
+              Go Back to Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     );

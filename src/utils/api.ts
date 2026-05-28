@@ -12,41 +12,53 @@ export function getApiUrl(path: string): string {
  * Stage 3: Fall back to direct Client-side fetch via AllOrigins.
  */
 async function resilientFetch(relativePath: string, directChessComUrl: string): Promise<any> {
-  // --- Stage 1: Server Proxy ---
+  // --- Stage 1: Direct Native Fetch ---
+  // Chess.com actually supports CORS natively. Let's try hitting them directly first to bypass Vercel server timeouts.
+  try {
+    const res = await fetch(directChessComUrl);
+    if (res.ok) {
+      return await res.json();
+    }
+    console.warn(`Stage 1 Direct Fetch failed for ${directChessComUrl}. Status: ${res.status}. Falling back to Proxy.`);
+  } catch (err) {
+    console.warn(`Stage 1 Direct Fetch threw network error for ${directChessComUrl}. Falling back to Proxy.`, err);
+  }
+
+  // --- Stage 2: Server Proxy ---
   try {
     const proxyUrl = getApiUrl(relativePath);
     const res = await fetch(proxyUrl);
     if (res.ok) {
       return await res.json();
     }
-    console.warn(`Stage 1 Server Proxy failed for ${relativePath}. Status: ${res.status}. Falling back to Stage 2.`);
+    console.warn(`Stage 2 Server Proxy failed for ${relativePath}. Status: ${res.status}. Falling back to Corsproxy.io.`);
   } catch (err) {
-    console.warn(`Stage 1 Server Proxy threw network error for ${relativePath}. Falling back to Stage 2.`, err);
+    console.warn(`Stage 2 Server Proxy threw network error for ${relativePath}. Falling back to Corsproxy.io.`, err);
   }
 
-  // --- Stage 2: Corsproxy.io ---
+  // --- Stage 3: Corsproxy.io ---
   try {
     const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(directChessComUrl)}`;
     const res = await fetch(corsProxyUrl);
     if (res.ok) {
       return await res.json();
     }
-    console.warn(`Stage 2 Corsproxy.io failed for ${directChessComUrl}. Status: ${res.status}. Falling back to Stage 3.`);
+    console.warn(`Stage 3 Corsproxy.io failed for ${directChessComUrl}. Status: ${res.status}. Falling back to AllOrigins.`);
   } catch (err) {
-    console.warn(`Stage 2 Corsproxy.io threw network error for ${directChessComUrl}. Falling back to Stage 3.`, err);
+    console.warn(`Stage 3 Corsproxy.io threw network error for ${directChessComUrl}. Falling back to AllOrigins.`, err);
   }
 
-  // --- Stage 3: AllOrigins ---
+  // --- Stage 4: AllOrigins ---
   try {
     const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directChessComUrl)}`;
     const res = await fetch(allOriginsUrl);
     if (res.ok) {
       return await res.json();
     }
-    throw new Error(`Stage 3 AllOrigins failed with status: ${res.status}`);
+    throw new Error(`Stage 4 AllOrigins failed with status: ${res.status}`);
   } catch (err) {
-    console.error(`Stage 3 AllOrigins failed as well for ${directChessComUrl}. All pipelines exhausted.`, err);
-    throw new Error(`Data acquisition failed for: ${directChessComUrl}. Please ensure the username/endpoint exists.`);
+    console.error(`All fetch pipelines exhausted for ${directChessComUrl}.`, err);
+    throw new Error(`Data acquisition failed for: ${directChessComUrl}. Please ensure the username exists.`);
   }
 }
 
@@ -111,23 +123,32 @@ export async function fetchChessHistory(username: string, offset: number = 0): P
 
     const archiveUrl = archivesData.archives[targetIndex];
     
-    // Resolve games inside target archive via CORS Proxy Stage 2 / 3 fallback
+    // Resolve games inside target archive via resilient fetching approach
     let gamesData;
     try {
-      const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(archiveUrl)}`;
-      const res = await fetch(corsProxyUrl);
+      const res = await fetch(archiveUrl);
       if (res.ok) {
         gamesData = await res.json();
       } else {
-        throw new Error();
+        throw new Error("Direct archive fetch failed");
       }
     } catch {
-      const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(archiveUrl)}`;
-      const res = await fetch(allOriginsUrl);
-      if (res.ok) {
-        gamesData = await res.json();
-      } else {
-        throw new Error("Failed to load historical games archive");
+      try {
+        const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(archiveUrl)}`;
+        const res = await fetch(corsProxyUrl);
+        if (res.ok) {
+          gamesData = await res.json();
+        } else {
+          throw new Error("CORS proxy failed");
+        }
+      } catch {
+        const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(archiveUrl)}`;
+        const res = await fetch(allOriginsUrl);
+        if (res.ok) {
+          gamesData = await res.json();
+        } else {
+          throw new Error("Failed to load historical games archive");
+        }
       }
     }
 
